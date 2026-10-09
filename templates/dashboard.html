@@ -1,205 +1,28 @@
 {% extends 'base.html' %}
 {% block content %}
-
-<div class="quitButton position-absolute" style="top:30px;right: 30px;">
-    <a href="javascript:;" onclick="setPin()" class="btn btn-warning">
-        Set a Pin
-    </a>
-    <a class="btn btn-danger" href="/logout">
-        <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-        >
-            <path
-                    d="M8.51428 20H4.51428C3.40971 20 2.51428 19.1046 2.51428 18V6C2.51428 4.89543 3.40971 4 4.51428 4H8.51428V6H4.51428V18H8.51428V20Z"
-                    fill="currentColor"
-            />
-            <path
-                    d="M13.8418 17.385L15.262 15.9768L11.3428 12.0242L20.4857 12.0242C21.038 12.0242 21.4857 11.5765 21.4857 11.0242C21.4857 10.4719 21.038 10.0242 20.4857 10.0242L11.3236 10.0242L15.304 6.0774L13.8958 4.6572L7.5049 10.9941L13.8418 17.385Z"
-                    fill="currentColor"
-            />
-        </svg>
-        Logout
-    </a>
+<div id="monitor">
+  <div class="page-top"><span class="breadcrumb">Workspace / {{ 'Event history' if view == 'events' else 'Overview' }}</span><span class="badge">Demo mode · Simulator</span></div>
+  <div class="page-heading"><div><h1>{{ 'Event history' if view == 'events' else 'Security overview' }}</h1><p class="subtle">{{ 'A record of device activity and account actions.' if view == 'events' else 'One entrance. A clear view of your alarm.' }}</p></div><span class="refresh-label" id="sync-status" role="status">Connecting…</span></div>
+  <div class="notice error" id="request-error" role="alert" hidden></div>
+  <div class="alert-panel" id="motion-alert" hidden><div><h2>Motion events need attention</h2><p id="alert-detail"></p></div><button type="button" id="acknowledge">Acknowledge alerts</button></div>
+  {% if view != 'events' %}
+  <div class="overview-panels">
+    <section class="panel state-panel"><div><div class="eyebrow">Alarm state</div><h2 class="alarm-value" id="alarm-state">{{ state['state'] }}</h2><p class="state-note" id="state-note">Loading current device state…</p></div><div class="button-row"><button type="button" class="primary" id="control-alarm">Arm system</button><button type="button" id="simulate-motion">Simulate motion</button></div></section>
+    <section class="panel device-panel"><div><h2>Entrance sensor</h2><dl class="device-details"><div><dt>Connection</dt><dd id="connection">Loading…</dd></div><div><dt>Mode</dt><dd>Simulated device</dd></div><div><dt>Last update</dt><dd><time id="device-updated"></time></dd></div></dl></div><button type="button" id="simulate-connection">Simulate disconnect</button></section>
+  </div>
+  {% endif %}
+  <section class="panel events-panel"><div class="section-heading"><h2>{{ 'All events' if view == 'events' else 'Recent events' }}</h2><a class="button" id="export-events" href="{{ url_for('web.export') }}">Export CSV</a></div>
+    <form class="event-filters" id="event-filters" role="search">
+      <label for="event-search">Search<input type="search" id="event-search" name="q" maxlength="100" placeholder="Event, source, or account"></label>
+      <div><label for="event-kind">Type</label><select id="event-kind" name="kind"><option value="all">All events</option><option value="motion">Motion</option><option value="control">Controls</option><option value="device">Device</option><option value="account">Accounts</option></select></div>
+      <div><label for="event-period">Time range</label><select id="event-period" name="period"><option value="all">All time</option><option value="day">Last 24 hours</option><option value="week">Last 7 days</option></select></div>
+    </form>
+    <div class="table-scroll"><table><thead><tr><th scope="col">Time</th><th scope="col">Event / Source</th><th scope="col">Actor</th><th scope="col">Status</th></tr></thead><tbody id="event-rows"><tr><td colspan="4">Loading event history…</td></tr></tbody></table></div>
+    <div class="pagination"><span id="event-count" aria-live="polite"></span><div class="button-row"><button type="button" id="previous-page" disabled>Previous</button><span id="page-label">Page 1</span><button type="button" id="next-page" disabled>Next</button></div></div>
+    <p class="table-note">Times use your browser's timezone. CSV uses UTC and includes up to 5,000 matching events.</p>
+  </section>
+  <div class="action-message" id="action-message" aria-live="polite"></div>
+  <dialog id="disarm-dialog" aria-labelledby="disarm-title"><h2 id="disarm-title">Disarm the system?</h2><p>Motion will still be recorded, but it will no longer trigger an alarm.</p><div class="button-row"><button type="button" id="cancel-disarm">Keep armed</button><button type="button" class="primary" id="confirm-disarm">Confirm disarm</button></div></dialog>
+  <script id="initial-state" type="application/json">{{ state | tojson }}</script>
 </div>
-
-    <div class="dashboard-container card card-body rounded-4">
-        <h1>Dashboard</h1>
-
-        <!-- Real-Time Status Section -->
-        <div class="status-section bg-secondary">
-            <h4 class="text-center">Motion Sensor Status</h4>
-            <p id="sensor-status">
-                {% if logs|length > 1 %}
-                    {{ logs[0].EventType }}
-                {% else %}
-                    Alarm Enabled
-                {% endif %}
-            </p>
-        </div>
-
-        <!-- Alarm Control Section -->
-        <div class="control-section bg-secondary">
-            <h4 class="text-center">Alarm Control</h4>
-            <div style="display: flex;flex-flow: row;">
-                {% if logs|length > 1 %}
-                    <button id="enable-alarm" class="btn btn-outline-warning" style="{% if(logs[0].EventType == 'Alarm Disabled') %} display:block; {% else %} display:none; {% endif %}" onclick="controlAlarm('enable')">Enable Alarm</button>
-                    <button id="disable-alarm" class="btn btn-outline-warning" style=`{% if(logs[0].EventType == 'Alarm Enabled') %} display:block; {% else %} display:none; {% endif %}` onclick="controlAlarm('disable')">Disable Alarm</button>
-                {% else %}
-                    <button id="enable-alarm" class="btn btn-outline-warning" style="display: none" onclick="controlAlarm('enable')">Enable Alarm</button>
-                    <button id="disable-alarm" class="btn btn-outline-warning" style="display: block" onclick="controlAlarm('disable')">Disable Alarm</button>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Recent Events Section -->
-        <div class="card" style="max-height: 500px;overflow: auto">
-            <div class="card-body">
-                <h4 class="text-center card-title">Recent Events</h4>
-                <table class="table table-striped rounded-4" id="events-table">
-                    <thead>
-                    <tr>
-                        <th class="text-center">Timestamp</th>
-                        <th class="text-center">Event Type</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for log in logs %}
-                    <tr>
-                        <td>{{ log.TimeStamp }}</td>
-                        <td>{{ log.EventType }}</td>
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- JavaScript to control the alarm -->
-    <script>
-        function controlAlarm(action) {
-            fetch('/control_alarm', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `action=${action}`
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (action === 'enable') {
-                        swal({
-                            title: "Alarm Enabled",
-                            icon: "success",
-                            button: "OK",
-                        });
-                    }else{
-                        swal({
-                            title: "Alarm Disabled",
-                            icon: "warning",
-                            button: "OK",
-                        });
-                    }
-                    // alert(`${action.charAt(0).toUpperCase() + action.slice(1)} Alarm`);
-                    updateEventLogs(data.logs);
-                    updateStatus(data.status);
-                })
-                .catch(error => {
-                    swal({
-                        title: "Error",
-                        text: "Failed to " + action + " alarm",
-                        icon: "error",
-                        button: "OK",
-                    });
-                });
-        }
-
-        function updateEventLogs(logs) {
-            const eventsTable = document.getElementById('events-table').getElementsByTagName('tbody')[0];
-            eventsTable.innerHTML = ''; // Clear existing logs
-
-            logs.forEach(log => {
-                const row = eventsTable.insertRow();
-                const timeCell = row.insertCell(0);
-                const eventCell = row.insertCell(1);
-
-                timeCell.textContent = log.TimeStamp;
-                eventCell.textContent = log.EventType;
-            });
-        }
-
-        function updateStatus(status) {
-            document.getElementById('sensor-status').textContent = status;
-            if (status === "Alarm Disabled") {
-                document.getElementById("enable-alarm").style.display = "block";
-                document.getElementById("disable-alarm").style.display = "none";
-            }else{
-                document.getElementById("enable-alarm").style.display = "none";
-                document.getElementById("disable-alarm").style.display = "block";
-            }
-        }
-    </script>
-
-    <script>
-        function setPin() {
-            swal({
-                text: 'Set a pin',
-                content: "input",
-                button: {
-                    text: "Set",
-                    closeModal: false,
-                }
-            })
-                .then(pin => {
-                    if (!pin) throw null;
-
-                    return fetch(`/setPin`,{
-                        method: "POST",
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: `pin=${pin}`
-                    });
-                })
-                .then(results => {
-                    return results.json();
-                })
-                .then(json => {
-                    const res = json.status;
-
-                    if (res === false) {
-                        return swal({
-                            title: "Error",
-                            text: json.message,
-                            icon: "error",
-                            button: "OK",
-                        });
-                    }
-
-                    swal({
-                        title: "Pin updated",
-                        icon: "success",
-                        button: "OK",
-                    });
-                })
-                .catch(err => {
-                    if (err) {
-                        swal({
-                            title: "Error",
-                            text: "Unable to update PIN, please contact your admin!",
-                            icon: "error",
-                            button: "OK",
-                        });
-                    } else {
-                        swal.stopLoading();
-                        swal.close();
-                    }
-                });
-        }
-
-    </script>
 {% endblock %}
