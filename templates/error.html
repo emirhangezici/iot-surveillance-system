@@ -1,0 +1,3 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} · Sentinel{% endblock %}
+{% block content %}<section class="panel narrow error-page"><span class="eyebrow">Sentinel</span><h1>{{ title }}</h1><p>{{ message }}</p><a class="button primary" href="{{ url_for('web.dashboard') if g.user else url_for('web.login') }}">Return to {{ 'overview' if g.user else 'sign in' }}</a></section>{% endblock %}

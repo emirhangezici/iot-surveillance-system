@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Account settings · Sentinel{% endblock %}
+{% block content %}
+<div class="page-top"><span class="breadcrumb">Workspace / Account settings</span><span class="badge">{{ g.user['role'] | title }}</span></div><div class="page-heading"><div><h1>Your account</h1><p class="subtle">Signed in as {{ g.user['username'] }}.</p></div></div>
+<section class="panel narrow"><h2>Change password</h2><p class="subtle">Changing your password signs out all sessions for this account.</p>
+{% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
+<form method="post" class="stack"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<label for="current-password">Current password<input type="password" id="current-password" name="current_password" required maxlength="128" autocomplete="current-password"></label>
+<label for="account-password">New password<input type="password" id="account-password" name="new_password" required minlength="10" maxlength="128" autocomplete="new-password"></label>
+<label for="confirm-password">Confirm new password<input type="password" id="confirm-password" name="confirm_password" required minlength="10" maxlength="128" autocomplete="new-password"></label>
+<button class="primary" type="submit">Update password</button></form></section>
+{% endblock %}
