@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="quitButton position-absolute" style="top:30px;right: 30px;">
+        <a class="btn btn-danger" href="/logout">
+            <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+            >
+                <path
+                        d="M8.51428 20H4.51428C3.40971 20 2.51428 19.1046 2.51428 18V6C2.51428 4.89543 3.40971 4 4.51428 4H8.51428V6H4.51428V18H8.51428V20Z"
+                        fill="currentColor"
+                />
+                <path
+                        d="M13.8418 17.385L15.262 15.9768L11.3428 12.0242L20.4857 12.0242C21.038 12.0242 21.4857 11.5765 21.4857 11.0242C21.4857 10.4719 21.038 10.0242 20.4857 10.0242L11.3236 10.0242L15.304 6.0774L13.8958 4.6572L7.5049 10.9941L13.8418 17.385Z"
+                        fill="currentColor"
+                />
+            </svg>
+            Logout
+        </a>
+    </div>
+    <div class="container d-flex flex-column">
+        <h1 class="text-2xl font-extrabold text-center mb-5" >Admin Panel</h1>
+
+        <!-- Add User Form -->
+        <div class="card mb-4 mt-5">
+            <div class="card-body">
+                <h4 class="card-title mb-4 text-center" >Add User</h4>
+                <form action="/add_user" method="POST">
+                    <div class="row">
+                        <div class="col">
+                            <input type="text" name="username" class="form-control" placeholder="Username"  required>
+                        </div>
+                        <div class="col">
+                            <input type="password" name="password" class="form-control" placeholder="Password" required>
+                        </div>
+                        <div class="col">
+                            <select name="user_type" class="form-control" required>
+                                <option value="" disabled selected>Select User Type</option>
+                                <option value="User">User</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="col">
+                            <button type="submit" class="btn btn-outline-success">Add User</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- List Users with Delete Option -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h4 class="card-title mb-4 text-center" >User List</h4>
+                <table class="table-striped table rounded-4 overflow-hidden" border="1" width="100%">
+                    <tr>
+                        <th class="text-center">ID</th>
+                        <th class="text-center">User Name</th>
+                        <th class="text-center">User Type</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                    {% for user in users %}
+                    <tr>
+                        <td class="border-t-4 border-t-black-500">{{ user.ID }}</td>
+                        <td class="border-t-4 border-t-black-500">{{ user.UserName }}</td>
+                        <td class="border-t-4 border-t-black-500">{{ user.UserType }}</td>
+                        <td class= "border-t-4 border-t-black-500">
+                            {% if user.ID != session['user_id'] %}
+                            <div class="delete-container">
+                                <form action="/delete_user" class="w-100" method="POST">
+                                    <input type="hidden" name="user_id" value="{{ user.ID }}">
+                                    <button class="btn btn-outline-danger" type="submit">Delete</button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <div class="delete-container">
+                                <button class="btn btn-secondary" disabled type="button">Delete</button>
+                            </div>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                </table>
+            </div>
+        </div>
+        <!-- Clear Logs Button -->
+        <div class="card">
+            <div class="card-body overflow-auto" style="max-height: 500px">
+                <h4 class="card-title mb-4 text-center" >Log List</h4>
+                <table class="table table-striped rounded-4 overflow-hidden" border="1" width="100%">
+                    <tr>
+                        <th class="text-center">ID</th>
+                        <th class="text-center">Event Type</th>
+                        <th class="text-center">Timestamp</th>
+                        <th class="text-center">User Name</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                    {% for log in logs %}
+                    <tr>
+                        <td class="border-t-4 border-t-black-500" >{{ log.ID }}</td>
+                        <td class="border-t-4 border-t-black-500">{{ log.EventType }}</td>
+                        <td class="border-t-4 border-t-black-500">{{ log.TimeStamp }}</td>
+                        <td class="border-t-4 border-t-black-500">{{ log.Username }}</td>
+                        <td class="border-t-4 border-t-black-500">
+                            <form class="w-100" action="/delete_log" method="POST">
+                                <input type="hidden" name="log_id" value="{{ log.ID }}">
+                                <button class="btn btn-outline-danger" type="submit">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+
+</div>
+{% endblock %}

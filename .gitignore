@@ -1,0 +1,63 @@
+# Python environments
+venv/
+.venv/
+env/
+ENV/
+virtualenv/
+
+# Bytecode and packaging
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Databases (local credentials and records)
+*.db
+*.sqlite
+*.sqlite3
+*.mdb
+*.accdb
+
+# Capture / recording artifacts
+captures/
+recordings/
+motion_captures/
+*.avi
+*.mkv
+*.mp4
+*.mov
+*.raw
+*.log
+
+# Flask instance
+instance/
+.webassets-cache
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini

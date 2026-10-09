@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="quitButton position-absolute" style="top:30px;right: 30px;">
+    <a href="javascript:;" onclick="setPin()" class="btn btn-warning">
+        Set a Pin
+    </a>
+    <a class="btn btn-danger" href="/logout">
+        <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+        >
+            <path
+                    d="M8.51428 20H4.51428C3.40971 20 2.51428 19.1046 2.51428 18V6C2.51428 4.89543 3.40971 4 4.51428 4H8.51428V6H4.51428V18H8.51428V20Z"
+                    fill="currentColor"
+            />
+            <path
+                    d="M13.8418 17.385L15.262 15.9768L11.3428 12.0242L20.4857 12.0242C21.038 12.0242 21.4857 11.5765 21.4857 11.0242C21.4857 10.4719 21.038 10.0242 20.4857 10.0242L11.3236 10.0242L15.304 6.0774L13.8958 4.6572L7.5049 10.9941L13.8418 17.385Z"
+                    fill="currentColor"
+            />
+        </svg>
+        Logout
+    </a>
+</div>
+
+    <div class="dashboard-container card card-body rounded-4">
+        <h1>Dashboard</h1>
+
+        <!-- Real-Time Status Section -->
+        <div class="status-section bg-secondary">
+            <h4 class="text-center">Motion Sensor Status</h4>
+            <p id="sensor-status">
+                {% if logs|length > 1 %}
+                    {{ logs[0].EventType }}
+                {% else %}
+                    Alarm Enabled
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Alarm Control Section -->
+        <div class="control-section bg-secondary">
+            <h4 class="text-center">Alarm Control</h4>
+            <div style="display: flex;flex-flow: row;">
+                {% if logs|length > 1 %}
+                    <button id="enable-alarm" class="btn btn-outline-warning" style="{% if(logs[0].EventType == 'Alarm Disabled') %} display:block; {% else %} display:none; {% endif %}" onclick="controlAlarm('enable')">Enable Alarm</button>
+                    <button id="disable-alarm" class="btn btn-outline-warning" style=`{% if(logs[0].EventType == 'Alarm Enabled') %} display:block; {% else %} display:none; {% endif %}` onclick="controlAlarm('disable')">Disable Alarm</button>
+                {% else %}
+                    <button id="enable-alarm" class="btn btn-outline-warning" style="display: none" onclick="controlAlarm('enable')">Enable Alarm</button>
+                    <button id="disable-alarm" class="btn btn-outline-warning" style="display: block" onclick="controlAlarm('disable')">Disable Alarm</button>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Events Section -->
+        <div class="card" style="max-height: 500px;overflow: auto">
+            <div class="card-body">
+                <h4 class="text-center card-title">Recent Events</h4>
+                <table class="table table-striped rounded-4" id="events-table">
+                    <thead>
+                    <tr>
+                        <th class="text-center">Timestamp</th>
+                        <th class="text-center">Event Type</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.TimeStamp }}</td>
+                        <td>{{ log.EventType }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript to control the alarm -->
+    <script>
+        function controlAlarm(action) {
+            fetch('/control_alarm', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=${action}`
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (action === 'enable') {
+                        swal({
+                            title: "Alarm Enabled",
+                            icon: "success",
+                            button: "OK",
+                        });
+                    }else{
+                        swal({
+                            title: "Alarm Disabled",
+                            icon: "warning",
+                            button: "OK",
+                        });
+                    }
+                    // alert(`${action.charAt(0).toUpperCase() + action.slice(1)} Alarm`);
+                    updateEventLogs(data.logs);
+                    updateStatus(data.status);
+                })
+                .catch(error => {
+                    swal({
+                        title: "Error",
+                        text: "Failed to " + action + " alarm",
+                        icon: "error",
+                        button: "OK",
+                    });
+                });
+        }
+
+        function updateEventLogs(logs) {
+            const eventsTable = document.getElementById('events-table').getElementsByTagName('tbody')[0];
+            eventsTable.innerHTML = ''; // Clear existing logs
+
+            logs.forEach(log => {
+                const row = eventsTable.insertRow();
+                const timeCell = row.insertCell(0);
+                const eventCell = row.insertCell(1);
+
+                timeCell.textContent = log.TimeStamp;
+                eventCell.textContent = log.EventType;
+            });
+        }
+
+        function updateStatus(status) {
+            document.getElementById('sensor-status').textContent = status;
+            if (status === "Alarm Disabled") {
+                document.getElementById("enable-alarm").style.display = "block";
+                document.getElementById("disable-alarm").style.display = "none";
+            }else{
+                document.getElementById("enable-alarm").style.display = "none";
+                document.getElementById("disable-alarm").style.display = "block";
+            }
+        }
+    </script>
+
+    <script>
+        function setPin() {
+            swal({
+                text: 'Set a pin',
+                content: "input",
+                button: {
+                    text: "Set",
+                    closeModal: false,
+                }
+            })
+                .then(pin => {
+                    if (!pin) throw null;
+
+                    return fetch(`/setPin`,{
+                        method: "POST",
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: `pin=${pin}`
+                    });
+                })
+                .then(results => {
+                    return results.json();
+                })
+                .then(json => {
+                    const res = json.status;
+
+                    if (res === false) {
+                        return swal({
+                            title: "Error",
+                            text: json.message,
+                            icon: "error",
+                            button: "OK",
+                        });
+                    }
+
+                    swal({
+                        title: "Pin updated",
+                        icon: "success",
+                        button: "OK",
+                    });
+                })
+                .catch(err => {
+                    if (err) {
+                        swal({
+                            title: "Error",
+                            text: "Unable to update PIN, please contact your admin!",
+                            icon: "error",
+                            button: "OK",
+                        });
+                    } else {
+                        swal.stopLoading();
+                        swal.close();
+                    }
+                });
+        }
+
+    </script>
+{% endblock %}

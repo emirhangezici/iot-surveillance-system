@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="pin-container">
+    <h1>Create Your Pin</h1>
+    <form action="/create_pin" method="POST">
+        <input type="password" name="pin" placeholder="Enter 4-digit PIN" required>
+        <button type="submit">Submit</button>
+    </form>
+</div>
+{% endblock %}
